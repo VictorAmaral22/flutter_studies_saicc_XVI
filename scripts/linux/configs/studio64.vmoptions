@@ -1,0 +1,23 @@
+# Android Studio — perfil enxuto para PCs de laboratório (Ubuntu 22.04)
+# Destino típico: $ANDROID_STUDIO_HOME/bin/studio64.vmoptions
+#
+# Objetivo: reduzir consumo de RAM/CPU sem impedir edição Flutter básica.
+
+-Xms256m
+-Xmx1536m
+-XX:ReservedCodeCacheSize=256m
+-XX:+UseG1GC
+-XX:SoftRefLRUPolicyMSPerMB=50
+-XX:CICompilerCount=2
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:-OmitStackTraceInFastThrow
+-Djdk.attach.allowAttachSelf=true
+
+# Menos background work
+-Didea.max.intellisense.filesize=2500
+-Didea.cycle.buffer.size=1024
+-Dsun.io.useCanonCaches=false
+
+# UI um pouco mais leve
+-Dawt.useSystemAAFontSettings=lcd
+-Dswing.aatext=true
