@@ -1,146 +1,92 @@
-# Flutter Intro — SAICC XVI
+# Flutter — instalação das dependências
 
-Mini-curso introdutório de **Flutter** para a **Semana Acadêmica da Computação (SAICC XVI)** da Universidade Federal do Rio Grande (FURG).
+Scripts para instalar o **Flutter** e o toolchain necessário para compilar apps. O repositório não contém o material do curso.
 
-**Duração:** 2 horas  
-**Formato:** slides rápidos + implementação guiada de um app **TODO List**
+| Sistema | Script | O que instala |
+|---------|--------|----------------|
+| Windows 10/11 | [`scripts/windows/install-lab.ps1`](scripts/windows/install-lab.ps1) | Git (se faltar), Flutter, Android Studio enxuto, Android SDK 36, BuildTools 28.0.3, AVD, extensões Dart/Flutter no VS Code |
+| Ubuntu 22.04 | [`scripts/linux/install-lab.sh`](scripts/linux/install-lab.sh) | Flutter, Android Studio, Android SDK, AVD, KVM, extensões do VS Code |
+| macOS | [`scripts/macos/install-lab.sh`](scripts/macos/install-lab.sh) | Flutter, Android Studio, Android SDK, AVD, extensões do VS Code |
 
----
+Windows e Linux exigem administrador (`PowerShell como administrador` / `sudo`). A flag de instalação compartilhada é `-System` no Windows e `--system` no Linux e no macOS.
 
-## Conteúdo
-
-| Material | Descrição |
-|----------|-----------|
-| [`docs/slides.md`](docs/slides.md) | Apresentação (Marp) — Dart, Flutter, Widgets, estado, layout |
-| [`docs/cronograma.md`](docs/cronograma.md) | Cronograma detalhado das 2h |
-| [`docs/hands-on.md`](docs/hands-on.md) | Roteiro passo a passo do app |
-| [`docs/guia-instrutor.md`](docs/guia-instrutor.md) | Dicas, troubleshooting e critérios de sucesso |
-| [`todo_app/`](todo_app/) | Código de referência do TODO List |
-
-### Tópicos abordados
-
-- Linguagem **Dart** (fundamentos)
-- Arquitetura do **Flutter** e árvore de **Widgets**
-- `StatelessWidget` vs `StatefulWidget`
-- Gerenciamento de estado com `ChangeNotifier` + `ListenableBuilder`
-- **Material Design 3** e tema via [Material Theme Builder](https://material-foundation.github.io/material-theme-builder/)
-- Código limpo e organização de pastas
-- Layout responsivo (`MediaQuery`, `ConstrainedBox`)
+Repositório: <https://github.com/mathyc0de/flutter_intro>
 
 ---
 
-## Pré-requisitos
+## Instalação direta pela web
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) 3.x
-- Editor (VS Code, Android Studio ou Cursor)
-- Emulador Android, dispositivo físico ou Chrome (`flutter run -d chrome`)
+Os comandos baixam o branch `main`, extraem e executam o instalador. Rode em um terminal **com privilégio de administrador**.
 
-```bash
-flutter doctor
+### Windows
+
+PowerShell como administrador:
+
+```powershell
+iex (irm https://raw.githubusercontent.com/mathyc0de/flutter_intro/main/scripts/windows/install-web.ps1)
 ```
 
-### Laboratório (Ubuntu 22.04)
+Isso instala em `C:\SAICC` (`-System`). Sem a flag compartilhada, use o script local descrito abaixo.
 
-Instalação automatizada de Flutter + Android Studio (perfil leve) + AVD otimizado:
-
-```bash
-chmod +x scripts/linux/install-lab.sh
-sudo ./scripts/linux/install-lab.sh --system   # compartilhado em /opt
-# ou
-sudo ./scripts/linux/install-lab.sh            # no $HOME do usuário (sudo obrigatório)
-```
-
-Detalhes: [`scripts/linux/README.md`](scripts/linux/README.md).
-
-Para compilar só no desktop Linux, sem Android Studio nem SDK:
+### Linux
 
 ```bash
-sudo ./scripts/linux/install-linux-desktop.sh --system
+curl -fsSL https://raw.githubusercontent.com/mathyc0de/flutter_intro/main/scripts/linux/install-web.sh | sudo bash
 ```
 
-### Laboratório (Windows 10/11)
+Equivalente no macOS, trocando o caminho por `scripts/macos/install-web.sh`.
 
-O instalador exige PowerShell **como Administrador** (equivalente ao sudo):
+---
+
+## Instalação a partir do clone
+
+```bash
+git clone https://github.com/mathyc0de/flutter_intro.git
+cd flutter_intro
+```
+
+### Windows
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install-lab.ps1 -System
 ```
 
-Detalhes: [`scripts/windows/README.md`](scripts/windows/README.md).
-
-### Laboratório (macOS)
-
-O instalador exige **sudo**. No Apple Silicon a imagem do emulador é `arm64-v8a`; no Intel, `x86_64`.
+### Linux
 
 ```bash
-chmod +x scripts/macos/install-lab.sh
+sudo ./scripts/linux/install-lab.sh --system
+```
+
+### macOS
+
+```bash
 sudo ./scripts/macos/install-lab.sh --system
 ```
 
-Detalhes: [`scripts/macos/README.md`](scripts/macos/README.md).
+No Apple Silicon a imagem do emulador é `arm64-v8a`. No Intel, `x86_64`.
 
 ---
 
-## Rodar o app de referência
+## Depois de instalar
+
+Abra um terminal novo:
 
 ```bash
-cd todo_app
-flutter pub get
-flutter run
+flutter doctor -v
 ```
 
-### Tema (Material Theme Builder)
-
-1. Abra o [Material Theme Builder](https://material-foundation.github.io/material-theme-builder/)
-2. Escolha uma cor semente
-3. Atualize `seed` em [`todo_app/lib/theme/app_theme.dart`](todo_app/lib/theme/app_theme.dart)
-4. Faça **Hot Restart** (`R`) para aplicar
-
----
-
-## Apresentar os slides
-
-Os slides estão em formato [Marp](https://marp.app/). No VS Code/Cursor, use a extensão Marp, ou:
+No Windows e no Linux com emulador:
 
 ```bash
-npx @marp-team/marp-cli docs/slides.md --pdf -o docs/slides.pdf
-npx @marp-team/marp-cli docs/slides.md --html -o docs/slides.html
+saicc-emulator
 ```
 
----
+Detalhes de cada sistema:
 
-## Estrutura do app
-
-```
-todo_app/lib/
-├── main.dart                 # MaterialApp + tema
-├── theme/app_theme.dart      # ColorScheme.fromSeed (Theme Builder)
-├── models/todo.dart          # Modelo imutável
-├── state/todo_controller.dart# ChangeNotifier
-├── screens/home_screen.dart  # Tela principal
-└── widgets/
-    ├── todo_tile.dart
-    ├── add_todo_sheet.dart
-    └── empty_state.dart
-```
-
----
-
-## Cronograma resumido
-
-| Bloco | Tempo |
-|-------|-------|
-| Abertura + Dart | ~15 min |
-| Flutter, Widgets, estado, layout | ~30 min |
-| Material Theme Builder | ~5 min |
-| Hands-on TODO List | ~70 min |
-| Q&A | ~5 min |
-
-Detalhes em [`docs/cronograma.md`](docs/cronograma.md).
-
----
+- [Windows](scripts/windows/README.md)
+- [Linux](scripts/linux/README.md)
+- [macOS](scripts/macos/README.md)
 
 ## Licença
 
 Veja [LICENSE](LICENSE).
-|
