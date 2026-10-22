@@ -6,7 +6,7 @@ Equivalente Windows de [`../linux/install-lab.sh`](../linux/install-lab.sh). Pre
 
 | Componente | Detalhe |
 |------------|---------|
-| Dependências | Git, long paths, modo de desenvolvedor, JDK 17 se o Studio for pulado |
+| Dependências | Git (só instala se ainda não existir), long paths, modo de desenvolvedor, JDK 17 se o Studio for pulado |
 | Aceleração | Windows Hypervisor Platform + Virtual Machine Platform (no lugar do KVM) |
 | Flutter | Canal stable (versão pinada no script) |
 | Android Studio | Zip oficial + `studio64.exe.vmoptions` com heap ~1.5 GB |

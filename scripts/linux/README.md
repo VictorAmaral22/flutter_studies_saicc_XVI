@@ -115,6 +115,16 @@ sudo FLUTTER_VERSION=3.47.7 \
 | Licenças Android | `flutter doctor --android-licenses` (responda `y`) |
 | Sem espaço em disco | Apague `~/.cache/saicc-install` após instalar; use `--skip-studio` se já houver IDE |
 
+## Só desktop Linux
+
+[`install-linux-desktop.sh`](install-linux-desktop.sh) instala o Flutter e o toolchain para **compilar apps Linux** (GTK, clang, cmake, ninja). Não instala Android Studio, Android SDK, emulador, JDK nem KVM.
+
+```bash
+sudo ./scripts/linux/install-linux-desktop.sh --system
+# novo terminal
+flutter build linux
+```
+
 ## Relação com o mini-curso
 
 Código do app: [`../../todo_app/`](../../todo_app/)  

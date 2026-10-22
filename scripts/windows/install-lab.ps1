@@ -1,7 +1,7 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  SAICC XVI — Flutter + Android Studio para laboratório Windows.
+  SAICC XVI  -  Flutter + Android Studio para laboratório Windows.
 
 .DESCRIPTION
   Equivalente Windows de scripts/lab/install-lab.sh.
@@ -166,18 +166,34 @@ function Save-Download([string]$Url, [string]$Dest) {
 }
 
 function Invoke-WingetInstall([string]$Id) {
+  if ($Id -eq 'Git.Git') {
+    $present = Find-Git
+    if ($present) {
+      Write-Ok "Git ja existe em $present. winget install Git.Git nao sera executado."
+      return
+    }
+  }
   if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     throw "winget não encontrado. Instale o 'App Installer' e rode de novo."
   }
   Write-Log "winget install $Id"
   & winget install --id $Id -e --scope machine `
     --accept-package-agreements --accept-source-agreements --disable-interactivity
-  # 0 = ok; -1978335189 = já instalado. Se a flag --disable-interactivity não existir, tenta de novo.
-  if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {
-    & winget install --id $Id -e --scope machine `
-      --accept-package-agreements --accept-source-agreements
+  $code = $LASTEXITCODE
+  # 0 = ok
+  # -1978335189 (0x8A15002B) = sem atualizacao aplicavel
+  # -1978334975 (0x8A150101) = pacote ja instalado
+  $done = @(0, -1978335189, -1978334975)
+  if ($done -contains $code) {
+    if ($code -ne 0) { Write-Ok "Pacote $Id ja estava instalado. Sem nova instalacao." }
+    return
   }
-  if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {
+  if ($Id -eq 'Git.Git') {
+    throw "winget falhou ao instalar Git (codigo $code)."
+  }
+  & winget install --id $Id -e --scope machine `
+    --accept-package-agreements --accept-source-agreements
+  if ($done -notcontains $LASTEXITCODE) {
     throw "winget falhou ao instalar $Id (código $LASTEXITCODE)"
   }
 }
@@ -188,17 +204,97 @@ function Grant-LabUsers([string]$Path) {
   & icacls.exe $Path /grant '*S-1-5-32-545:(OI)(CI)M' /T /C | Out-Null
 }
 
+function Find-Git {
+  # Devolve so o caminho, ou $null. Nao escreve mais nada na saida.
+  $candidates = @()
+  foreach ($root in @(
+      "$env:ProgramFiles\Git",
+      "$env:LOCALAPPDATA\Programs\Git",
+      $(if (${env:ProgramFiles(x86)}) { "${env:ProgramFiles(x86)}\Git" })
+    )) {
+    if (-not $root) { continue }
+    foreach ($rel in @('cmd\git.exe', 'bin\git.exe', 'mingw64\bin\git.exe')) {
+      $candidates += (Join-Path $root $rel)
+    }
+  }
+
+  foreach ($reg in @(
+      'HKLM:\SOFTWARE\GitForWindows',
+      'HKLM:\SOFTWARE\WOW6432Node\GitForWindows',
+      'HKCU:\SOFTWARE\GitForWindows'
+    )) {
+    try {
+      $install = (Get-ItemProperty -Path $reg -ErrorAction Stop).InstallPath
+      if ($install) {
+        $candidates += (Join-Path $install 'cmd\git.exe')
+        $candidates += (Join-Path $install 'bin\git.exe')
+      }
+    } catch {}
+  }
+
+  foreach ($uninstallRoot in @(
+      'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+      'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
+      'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+    )) {
+    if (-not (Test-Path $uninstallRoot)) { continue }
+    foreach ($key in (Get-ChildItem $uninstallRoot -ErrorAction SilentlyContinue)) {
+      $app = Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue
+      if (-not $app -or ($app.DisplayName -notmatch '^Git( for Windows)?')) { continue }
+      if ($app.InstallLocation) {
+        $candidates += (Join-Path $app.InstallLocation 'cmd\git.exe')
+        $candidates += (Join-Path $app.InstallLocation 'bin\git.exe')
+        $candidates += (Join-Path $app.InstallLocation 'mingw64\bin\git.exe')
+      }
+    }
+  }
+
+  foreach ($scope in @('Process', 'Machine', 'User')) {
+    $raw = if ($scope -eq 'Process') { $env:Path } else { [Environment]::GetEnvironmentVariable('Path', $scope) }
+    if (-not $raw) { continue }
+    foreach ($entry in ($raw -split ';')) {
+      $dir = $entry.Trim().Trim('"')
+      if (-not $dir) { continue }
+      try {
+        $candidates += (Join-Path $dir 'git.exe')
+        $candidates += (Join-Path $dir 'git.cmd')
+      } catch {}
+    }
+  }
+
+  foreach ($item in $candidates) {
+    if ($item -and (Test-Path -LiteralPath $item)) { return $item }
+  }
+
+  $cmd = Get-Command git -ErrorAction SilentlyContinue
+  if ($cmd -and $cmd.Source -and ($cmd.Source -notmatch 'WindowsApps') -and (Test-Path -LiteralPath $cmd.Source)) {
+    return $cmd.Source
+  }
+  return $null
+}
+
+function Install-GitIfMissing {
+  $gitExe = Find-Git
+  if ($gitExe -and (Test-Path -LiteralPath $gitExe)) {
+    Write-Ok "Git ja existe em $gitExe. winget nao sera chamado."
+  } else {
+    Write-Log 'Git nao encontrado na maquina. Instalando...'
+    Invoke-WingetInstall 'Git.Git'
+    Refresh-SessionPath
+    $gitExe = Find-Git
+    if (-not $gitExe) { throw 'Git nao encontrado depois da instalacao.' }
+  }
+  $gitDir = Split-Path -Parent $gitExe
+  $env:Path = $gitDir + ';' + $env:Path
+  & $gitExe config --system core.longpaths true
+  if ($LASTEXITCODE -ne 0) { Write-Warn 'Nao foi possivel ajustar core.longpaths no Git existente.' }
+}
+
 function Install-Prereqs {
   Write-Log 'Dependências (Git, long paths, modo de desenvolvedor)...'
   New-Item -ItemType Directory -Force -Path $DownloadDir, $OptRoot, $LauncherDir | Out-Null
 
-  Invoke-WingetInstall 'Git.Git'
-  Refresh-SessionPath
-  $gitCmd = 'C:\Program Files\Git\cmd'
-  if (Test-Path (Join-Path $gitCmd 'git.exe')) {
-    $env:Path = "$gitCmd;$env:Path"
-  }
-  & git config --system core.longpaths true
+  Install-GitIfMissing
 
   New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' `
     -Name 'LongPathsEnabled' -PropertyType DWord -Value 1 -Force | Out-Null
@@ -208,7 +304,7 @@ function Install-Prereqs {
   if (-not $DoSkipStudio) {
     # JDK só é obrigatório se o Studio (que traz o JBR) for pulado.
   } else {
-    Write-Log 'Android Studio ignorado — instalando Temurin 17 para o sdkmanager'
+    Write-Log 'Android Studio ignorado  -  instalando Temurin 17 para o sdkmanager'
     Invoke-WingetInstall 'EclipseAdoptium.Temurin.17.JDK'
   }
 
@@ -504,7 +600,7 @@ function Install-VsCodeExtensions {
   $fallback = 'C:\Program Files\Microsoft VS Code\bin\code.cmd'
   if (-not $code -and (Test-Path $fallback)) { $code = $fallback }
   if (-not $code) {
-    Write-Warn 'VS Code (comando code) não encontrado — extensões não instaladas.'
+    Write-Warn 'VS Code (comando code) não encontrado  -  extensões não instaladas.'
     Write-Warn "  code --install-extension $VsCodeDartExt --force"
     Write-Warn "  code --install-extension $VsCodeFlutterExt --force"
     return

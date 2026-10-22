@@ -52,6 +52,12 @@ sudo ./scripts/linux/install-lab.sh            # no $HOME do usuário (sudo obri
 
 Detalhes: [`scripts/linux/README.md`](scripts/linux/README.md).
 
+Para compilar só no desktop Linux, sem Android Studio nem SDK:
+
+```bash
+sudo ./scripts/linux/install-linux-desktop.sh --system
+```
+
 ### Laboratório (Windows 10/11)
 
 O instalador exige PowerShell **como Administrador** (equivalente ao sudo):
